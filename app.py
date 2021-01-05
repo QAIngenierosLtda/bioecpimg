@@ -1,11 +1,12 @@
 from flask import Flask,  request, jsonify, make_response
 from flask_restful import Resource, Api, reqparse
-from flask_sqlalchemy import SQLAlchemy
-from werkzeug.security import generate_password_hash, check_password_hash
-import uuid
-import jwt
+from flask_cors import CORS, cross_origin
+# from flask_sqlalchemy import SQLAlchemy
+# from werkzeug.security import generate_password_hash, check_password_hash
+# import uuid
+# import jwt
 import datetime
-from functools import wraps
+# from functools import wraps
 import os
 import glob
 import cv2
@@ -16,12 +17,13 @@ import cv2
 
 app = Flask(__name__)
 api = Api(app)
+CORS(app)
 
 app.config['SECRET_KEY']='S3cr3t'
 app.config['SQLALCHEMY_DATABASE_URI']='sqlite://///Users/amejia/Proyectos/QA/bioecpimg/library.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
 
-db = SQLAlchemy(app)
+# db = SQLAlchemy(app)
 
 app.config['UPLOAD_FOLDER'] = 'uploads/'
 app.config['ALLOWED_EXTENSIONS'] = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
@@ -207,51 +209,22 @@ def allowed_file(filename):
   return '.' in filename and \
     filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
 
-
-class Users(db.Model):
-  id = db.Column(db.Integer, primary_key=True)
-  public_id = db.Column(db.Integer)
-  name = db.Column(db.String(50))
-  password = db.Column(db.String(50))
-  admin = db.Column(db.Boolean)
-
-  def token_required(f):
-    @wraps(f)
-    def decorator(*args, **kwargs):
-
-      token = None
-
-      if 'x-access-tokens' in request.headers:
-        token = request.headers['x-access-tokens']
-
-      if not token:
-        return jsonify({'message': 'a valid token is missing'})
-
-      try:
-        data = jwt.decode(token, app.config[SECRET_KEY])
-        current_user = Users.query.filter_by(public_id=data['public_id']).first()
-      except:
-        return jsonify({'message': 'token is invalid'})
-
-      return f(current_user, *args, **kwargs)
-
-    return decorator
-
-
 class ProcessImageEndpoint(Resource):
   
-  # def __init__(self):
-  #     # Create a request parser
-  #     parser = reqparse.RequestParser()
-  #     parser.add_argument("image", type=str,
-  #                         help="Base64 encoded image string", required=True, location='json')
-  #     self.req_parser = parser
+  def __init__(self):
+      # Create a request parser
+      parser = reqparse.RequestParser()
+      parser.add_argument("image", type=str,
+                          help="Base64 encoded image string", required=True, location='json')
+      self.req_parser = parser
 
 
   # This method is called when we send a POST request to this endpoint
   def post(self):
+
       # Se realiza un POST al endpoint
       file = request.files['file']
+      print(file)
       res = "No image sent :("
       # print(file)
       if file:
