@@ -32,14 +32,25 @@ import datetime
 import os
 from os import path
 from os.path import dirname
+from datetime import datetime
+import time
 # import glob
 import numpy as np
 import cv2
 import logging
+import base64
+from PIL import Image
+from io import BytesIO
+import multitasking
+# from waitress import serve
+# import pdb; pdb.set_trace()
 
+# si se usa deteccin de mascara descomentar las siguiente 3 linieas
 from tensorflow.keras.applications.mobilenet_v2 import preprocess_input
 from tensorflow.keras.preprocessing.image import img_to_array
 from tensorflow.keras.models import load_model
+
+
 from flask import Flask,  request, make_response, render_template, send_from_directory
 from flask_restful import Resource, Api, reqparse
 from flask_cors import CORS
@@ -72,11 +83,14 @@ app.config['UPLOAD_FOLDER'] = 'uploads/'
 app.config['PROCESS_FOLDER'] = 'crops/'
 app.config['ALLOWED_EXTENSIONS'] = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
 
+logging.getLogger('flask_cors').level = logging.DEBUG
+
+
 result = {}
 motivos = []
 
 # Load Neuronal Net
-os.path.join(app.config['UPLOAD_FOLDER'], 'imagen.jpg')
+# os.path.join(app.config['UPLOAD_FOLDER'], 'imagen.jpg')
 
 # load our serialized face detector model from disk
 print("[INFO] loading face detector model...")
@@ -86,8 +100,9 @@ weightsPath = os.path.join(dirname(__file__),
 net = cv2.dnn.readNet(prototxtPath, weightsPath)
 
 # load the face mask detector model from disk
-print("[INFO] loading face mask detector model...")
-model = load_model('mask_detector.model')
+# print("[INFO] loading face mask detector model...")
+# modelPath = os.path.join(dirname(__file__), 'mask_detector.model')
+# model = load_model(modelPath)
 
 
 @app.route('/uploads/<path:filename>')
@@ -100,8 +115,57 @@ def upload_file(filename):
 def result_file(filename):
     return send_from_directory(app.config['PROCESS_FOLDER'], filename, as_attachment=True, cache_timeout=0)
 
+
+@app.route('/base64', methods=['POST']) 
+def upload_base64_file(): 
+    """ 
+        Upload image with base64 format and get car make model and year 
+        response 
+    """
+
+    data = request.get_json()
+    # print(data)
+
+    if data is None:
+        print("No valid request body, json missing!")
+        return jsonify({'error': 'No valid request body, json missing!'})
+    else:
+        img_data = data['img']
+        doc = data["doc"]
+        img_data = img_data[img_data.find(",")+1:]
+
+        # this method convert and save the base64 string to image
+        # convert_and_save(img_data)
+
+        # if (path.exists("crops/face.jpg")):
+        #     os.remove('crops/face.jpg')
+        # if (path.exists("crops/faces.jpg")):
+        #     os.remove('crops/faces.jpg')
+        # if (path.exists("crops/crop.jpg")):
+        #     os.remove('crops/crop.jpg')
+
+        
+        im = Image.open(BytesIO(base64.b64decode(img_data)))
+        im.save(os.path.join(app.config['UPLOAD_FOLDER'], doc + '.jpg'));
+        filename = doc + '.jpg'
+        res = test_image(os.path.join(app.config['UPLOAD_FOLDER'], filename), doc)
+
+        return res
+
+def convert_and_save(b64_string):
+
+    b64_string += '=' * (-len(b64_string) % 4)  # restore stripped '='s
+
+    string = b'{b64_string}'
+
+
+
+    # with open("/uploads/imagen.png", "wb") as fh:
+    #     fh.write(base64.decodebytes(string))
+
+
 # Detecta mascara
-def detect_mask(image):
+def detect_mask(image, doc):
     # Detecta el tamaño de la imagen
     (h, w) = image.shape[:2]
 
@@ -158,7 +222,7 @@ def detect_mask(image):
                 cv2.FONT_HERSHEY_SIMPLEX, 0.45, color, 2)
             cv2.rectangle(image, (startX, startY), (endX, endY), color, 2)
 
-            cv2.imwrite('crops/' + 'mask.jpg', image)
+            cv2.imwrite('crops/' + 'mask_' + doc + '.jpg', image)
 
     return maskStat
 
@@ -196,7 +260,8 @@ def image_resize(image, width = None, height = None, inter = cv2.INTER_AREA):
     return resized
 
 # Recorta la imagen alrededor de la cara detectada
-def crop_image(filename):
+def crop_image(filename, doc):
+    
     # Load the cascade
     face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades +'haarcascade_frontalface_default.xml')
 
@@ -227,7 +292,7 @@ def crop_image(filename):
         # cv2.rectangle(gray, (x, y), (x+w, y+h), (0, 255, 0), 2)
 
         # Graba la imagen con el rectangulo
-        cv2.imwrite('crops/' + 'salida.jpg', img)
+        cv2.imwrite('crops/' + 'salida_' + doc + '.jpg', img)
 
         rw = w/width
         rh = h/height
@@ -268,25 +333,25 @@ def crop_image(filename):
         print("Coordenadas recorte" , y1,y2,x1,x2)
 
         faceimg = img[y:y+h,x:x+w]
-        cv2.imwrite('crops/face.jpg', faceimg)
+        cv2.imwrite('crops/face_' + doc + '.jpg', faceimg)
 
         img2 = img[y1:y2,x1:x2]
-        cv2.imwrite('crops/frame.jpg', img2)
+        cv2.imwrite('crops/frame_' + doc + '.jpg', img2)
 
         img2 = image_resize(img2, width=640)
         # write the output
         print("Escribiendo imagen recortada")
-        cv2.imwrite('crops/crop.jpg', img2)
+        cv2.imwrite('crops/crop_' + doc + '.jpg', img2)
 
 # Detecta las caras que esten en la imagen        
-def detect_faces(img):
+def detect_faces(img, doc):
     # Get image sizes
     # height, width, channels = img.shape
     # Load the cascade
     face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades +'haarcascade_frontalface_default.xml')
     # Convert into grayscale
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    cv2.imwrite('crops/' + 'gray.jpg', gray)
+    cv2.imwrite('crops/' + 'gray_' + doc + '.jpg', gray)
     # Detect faces
     faces = face_cascade.detectMultiScale(
         gray, 
@@ -301,7 +366,7 @@ def detect_faces(img):
     for (x, y, w, h) in faces:
         cv2.rectangle(faceImg, (x, y), (x+w, y+h), (0, 255, 0), 2)
         
-    cv2.imwrite('crops/' + 'faces.jpg', faceImg)
+    cv2.imwrite('crops/' + 'faces_' + doc + '.jpg', faceImg)
 
     return faces
 
@@ -351,16 +416,24 @@ def detect_blur_fft(image, size=60, thresh=10):
     return (mean, mean <= thresh)
 
 # Funcion que ejecuta la verificacion de imagenes
-def test_image(filename):
+def test_image(filename, doc):
     img = cv2.imread(filename)
+    print(filename)
+    print(doc)
     # height, width, channels = img.shape
 
     # Definicion de los valores iniciales
+    result["infile"] = filename.split('/')[1].split('.')[0]
+    result["outfile"] = ""
     result["status"] = "aprobado"
     result["motivos"] = []
     result["original_size"] = test_size(img)
     result["final_size"] = {}
     result["blur"] = test_blur(img)
+    result["process_time"] = 0
+    # result["start_time"] = datetime.now()
+    
+    start = time.time()
 
     #Convierte la imagen a tonos de grises
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -378,16 +451,16 @@ def test_image(filename):
     motivos = []
     
     # detecta numero de caras en la imagen
-    faces = detect_faces(img)
+    faces = detect_faces(img, doc)
     result["faces"] = len(faces)
 
-    result["mask"] = detect_mask(img)
+    # result["mask"] = detect_mask(img, doc)
 
-    print("Mascara : " , result["mask"])
-    # Si se detecta una mascara se rechaza la imagen
-    if (result["mask"] == "Mask"):
-        motivos.append("No se permite usar mascara para la foto")
-        result["status"] = "rechazado"
+    # print("Mascara : " , result["mask"])
+    # # Si se detecta una mascara se rechaza la imagen
+    # if (result["mask"] == "Mask"):
+    #     motivos.append("No se permite usar mascara para la foto")
+    #     result["status"] = "rechazado"
 
     # Si se detecta mas de una cara se rechaza
     if len(faces) > 1:
@@ -416,13 +489,14 @@ def test_image(filename):
         
     # Si cumple las condiciones recorta la imagen alrededor de la cara
     if img is not None and result["status"] == "aprobado":        
-        crop_image(filename)
+        crop_image(filename, doc)
         import base64
-        if (path.exists("crops/face.jpg")):
-            imgOut = cv2.imread("crops/crop.jpg")
+        if (path.exists("crops/face_" + doc + ".jpg")):
+            imgOut = cv2.imread("crops/crop_" + doc + ".jpg")
             result["final_size"] = test_size(imgOut)
             string = base64.b64encode(cv2.imencode('.jpg', imgOut)[1]).decode()
             result["image"] = string
+            result["outfile"] = "crop_" + doc + ".jpg"
         else:
             result["status"] = "rechazado"
             motivos.append("No fue posible crear recorte de imagen")
@@ -432,9 +506,10 @@ def test_image(filename):
     if result["status"] != "aprobado":
         result["motivos"]= motivos
 
-    with open('crops/response.json', 'w') as json_file:
+    with open('crops/response_' + doc + '.json', 'w') as json_file:
         json.dump(result, json_file)
 
+    result["process_time"] = time.time() - start
     # Se retorna el JSON del resultado
     return result
 
@@ -482,22 +557,30 @@ class ProcessImageEndpoint(Resource):
 
         # Se realiza un POST al endpoint
         file = request.files['file']
+        # doc = request['doc']
+        doc = request.values["doc"]
+        print (request)
         print(file)
+        print(doc)
+
         res = "No image sent :("
         # print(file)
         if file:
             # Existe un archivo en el POST
             if file and allowed_file(file.filename):
-                filename = file.filename
+                #filename = file.filename
+                filename = doc + '.jpg'
                 print(filename)
-                file.save(os.path.join(app.config['UPLOAD_FOLDER'], 'imagen.jpg'))
-                if (path.exists("crops/face.jpg")):
-                    os.remove('crops/face.jpg')
-                if (path.exists("crops/faces.jpg")):
-                    os.remove('crops/faces.jpg')
-                if (path.exists("crops/crop.jpg")):
-                    os.remove('crops/crop.jpg')
-                res = test_image(os.path.join(app.config['UPLOAD_FOLDER'], 'imagen.jpg'))
+                print(doc)
+
+                file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+                # if (path.exists("crops/face.jpg")):
+                #     os.remove('crops/face.jpg')
+                # if (path.exists("crops/faces.jpg")):
+                #     os.remove('crops/faces.jpg')
+                # if (path.exists("crops/crop.jpg")):
+                #     os.remove('crops/crop.jpg')
+                res = test_image(os.path.join(app.config['UPLOAD_FOLDER'], filename), doc)
 
 
         return res
@@ -507,4 +590,5 @@ api.add_resource(ProcessImageEndpoint, '/')
 api.add_resource(data,'/images')
 
 if __name__ == '__main__':
-  app.run(debug=True)
+    # serve(app, host="0.0.0.0", port=5000)
+    app.run(debug=True)

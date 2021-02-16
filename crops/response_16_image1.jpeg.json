@@ -1,0 +1,1 @@
+{"infile": "28_image1", "outfile": "crop_16_image1.jpeg.jpg", "status": "aprobado", "motivos": [], "original_size": {"height": 1280, "width": 853, "channels": 3}, "final_size": {}, "blur": 543.9923840897636, "process_time": 0, "mean_fft": 10.029670711606077, "blurry": 0, "faces": 0, "image": ""}
