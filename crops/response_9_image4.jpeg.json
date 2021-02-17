@@ -1,1 +1,0 @@
-{"infile": "13_image4", "outfile": "crop_9_image4.jpeg.jpg", "status": "aprobado", "motivos": [], "original_size": {"height": 1280, "width": 960, "channels": 3}, "final_size": {"height": 808, "width": 640, "channels": 3}, "blur": 35.0918481161535, "process_time": 0, "mean_fft": 13.701946877771524, "blurry": 0, "faces": 0, "image": ""}
