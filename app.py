@@ -14,7 +14,7 @@ import base64
 from PIL import Image
 from io import BytesIO
 
-from imp import Imp
+from impr import Imp
 
 # from multiprocessing import Value
 
@@ -121,8 +121,6 @@ def help():
 
 @app.route('/uploads/<path:filename>')
 def upload_file(filename):
-    
-    
     return send_from_directory(app.config["UPLOAD_FOLDER"], filename, as_attachment=True, cache_timeout=0)
 
 @app.route('/crops/<path:filename>')
@@ -146,7 +144,9 @@ def upload_base64_file():
         return res
     else:
         img_data = data['img']
-        doc = data["doc"]
+        gfh = datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
+        doc = data["doc"] + '_' + gfh
+
         
         img_data = img_data[img_data.find(",")+1:]
         im = Image.open(BytesIO(base64.b64decode(img_data)))
@@ -172,7 +172,11 @@ class data(Resource):
     def get(self):
         #return "Welcome!"
         # return render_template('index.html')
-        response = make_response(render_template('index.html'))
+        document = request.values["doc"]
+        image_name = document + '.jpg'
+        faces_name = 'faces_' + document + '.jpg'
+        crops_name = 'crop_' + document + '.jpg'
+        response = make_response(render_template('index.html', document=document, image_name=image_name, faces_name=faces_name, crops_name=crops_name))
         response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
         response.headers['Pragma'] = 'no-cache'
         response.headers['Cache-Control'] = 'public, max-age=0'
@@ -204,10 +208,11 @@ class ProcessImageEndpoint(Resource):
     # This method is called when we send a POST request to this endpoint
     def post(self):
 
+        gfh = datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
         # Se realiza un POST al endpoint
         file = request.files['file']
         # doc = request['doc']
-        doc = request.values["doc"]
+        doc = request.values["doc"] + '_' + gfh
         # print (request)
         print(file)
         # print(doc)
@@ -219,7 +224,7 @@ class ProcessImageEndpoint(Resource):
             if file and allowed_file(file.filename):
                 #filename = file.filename
                 filename = doc + '.jpg'
-                # print(filename)
+                print(filename)
                 # print(doc)
                 file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
                 # filename = os.path.join(app.config['UPLOAD_FOLDER'], filename)
@@ -227,7 +232,6 @@ class ProcessImageEndpoint(Resource):
 
                 ip = Imp(filename, doc)
                 res = ip.test_image()
-
 
         return res
 

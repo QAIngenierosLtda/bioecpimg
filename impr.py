@@ -1,4 +1,3 @@
-# import glob
 import numpy as np
 import cv2
 import logging
@@ -10,7 +9,7 @@ from os import path
 from os.path import dirname
 import json
 
-
+DEBUG_IMPR = False
 class Imp:
   
     def __init__(self, filename, doc):
@@ -31,7 +30,8 @@ class Imp:
         blob = cv2.dnn.blobFromImage(image, 1.0, (300, 300),(104.0, 177.0, 123.0))
 
         # envia el blob a traves de la red neuronal y detecta la mascara
-        print("[INFO] computing face detections...")
+        if (DEBUG_IMPR):
+            print("[INFO] computing face detections...")
         net.setInput(blob)
         detections = net.forward()
 
@@ -66,7 +66,8 @@ class Imp:
                 # has a mask or not
                 (mask, withoutMask) = model.predict(face)[0]
 
-                print(mask, withoutMask)
+                if (DEBUG_IMPR):
+                    print(mask, withoutMask)
                 # determine the class label and color we'll use to draw
                 # the bounding box and text
                 maskStat = "Mask" if mask > withoutMask else "No Mask"
@@ -76,9 +77,9 @@ class Imp:
                 label = "{}: {:.2f}%".format(label, max(mask, withoutMask) * 100)
                 # display the label and bounding box rectangle on the output
                 # frame
-                cv2.putText(image, label, (startX, startY - 10),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.45, color, 2)
-                cv2.rectangle(image, (startX, startY), (endX, endY), color, 2)
+                # cv2.putText(image, label, (startX, startY - 10),
+                #     cv2.FONT_HERSHEY_SIMPLEX, 0.45, color, 2)
+                # cv2.rectangle(image, (startX, startY), (endX, endY), color, 2)
 
                 cv2.imwrite('crops/' + 'mask_' + doc + '.jpg', image)
 
@@ -122,12 +123,14 @@ class Imp:
         
         # Load the cascade
         face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades +'haarcascade_frontalface_default.xml')
+        eye_cascade = cv2.CascadeClassifier(cv2.data.haarcascades +'haarcascade_eye.xml')
 
         # Read the input image
-        img = cv2.imread(filename)
+        img = cv2.imread(self.filename)
         height, width, channels = img.shape
 
-        print("Image for crop charateristics: W:" , width , " H:" , height)
+        if (DEBUG_IMPR):
+            print("Image for crop charateristics: W:" , width , " H:" , height)
 
         # Convert into grayscale
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -141,9 +144,13 @@ class Imp:
             minSize = (200,200)
         )
 
+        eyes = eye_cascade.detectMultiScale(gray)
+        print(eyes)
+
         # print(filename)
         # print(faces)
-        print("Face coordinates: " , faces)
+        if (DEBUG_IMPR):
+            print("Face coordinates: " , faces)
         # Draw rectangle around the faces
         # Draw a rectangle around the faces
         for (x, y, w, h) in faces:
@@ -159,8 +166,9 @@ class Imp:
             of_y = (int)((h*rh/0.2)/4)
 
 
-            print("Relaciones de ancho y alto con imagen Rw, Rh", rw, rh )
-            print("Ofset de ancho y alto con imagen of_x, of_y", of_x, of_y )
+            if (DEBUG_IMPR):
+                print("Relaciones de ancho y alto con imagen Rw, Rh", rw, rh )
+                print("Ofset de ancho y alto con imagen of_x, of_y", of_x, of_y )
 
             x1 = x - of_x
             if (x1 < 0):
@@ -175,7 +183,8 @@ class Imp:
             if (y2 > height):
                 y2 = height    
             
-            print("Coordenadas recorte" , y1,y2,x1,x2)
+            if (DEBUG_IMPR):
+                print("Coordenadas recorte" , y1,y2,x1,x2)
 
             faceimg = img[y:y+h,x:x+w]
             cv2.imwrite('crops/face_' + doc + '.jpg', faceimg)
@@ -185,7 +194,8 @@ class Imp:
 
             img2 = self.image_resize(img2, width=640)
             # write the output
-            print("Escribiendo imagen recortada")
+            if (DEBUG_IMPR):
+                print("Escribiendo imagen recortada")
             cv2.imwrite('crops/crop_' + doc + '.jpg', img2)
 
     # Detecta las caras que esten en la imagen        
@@ -194,6 +204,7 @@ class Imp:
         # height, width, channels = img.shape
         # Load the cascade
         face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades +'haarcascade_frontalface_default.xml')
+        eye_cascade = cv2.CascadeClassifier(cv2.data.haarcascades +'haarcascade_eye.xml')
         # Convert into grayscale
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         cv2.imwrite('crops/' + 'gray_' + doc + '.jpg', gray)
@@ -204,21 +215,49 @@ class Imp:
             minNeighbors = 5,
             minSize = (200,200)
         )
-        print ("Found {0} faces!".format(len(faces)))
+        if (DEBUG_IMPR):
+            print ("Found {0} faces!".format(len(faces)))
 
         faceImg = img
         # # Draw a rectangle around the faces
-        for (x, y, w, h) in faces:
-            cv2.rectangle(faceImg, (x, y), (x+w, y+h), (0, 255, 0), 2)
+        # for (x, y, w, h) in faces:
+        #     cv2.rectangle(faceImg, (x, y), (x+w, y+h), (0, 255, 0), 2)
             
         cv2.imwrite('crops/' + 'faces_' + doc + '.jpg', faceImg)
 
         return faces
 
+    # Detecta los ojos que esten en la imagen        
+    def detect_eyes(self, img, doc):
+        # Get image sizes
+        # height, width, channels = img.shape
+        # Load the cascade
+        # face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades +'haarcascade_frontalface_default.xml')
+        eye_cascade = cv2.CascadeClassifier(cv2.data.haarcascades +'haarcascade_eye.xml')
+        # Convert into grayscale
+        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        cv2.imwrite('crops/' + 'gray_' + doc + '.jpg', gray)
+        # Detect faces
+        eyes = eye_cascade.detectMultiScale(gray)
+        if (DEBUG_IMPR):
+            print ("Found {0} eyes!".format(len(eyes)))
+
+        faceImg = img
+        # Draw a rectangle around the faces
+        for (x, y, w, h) in eyes:
+            cv2.rectangle(faceImg, (x, y), (x+w, y+h), (0, 255, 0), 2)
+            
+        cv2.imwrite('crops/' + 'eyes_' + doc + '.jpg', faceImg)
+
+        return eyes
+
+    
+
     # Determinar las caracteristicas de W,H y canales
     def test_size(self, img):
         height, width, channels = img.shape
-        print("Image charateristics: W:" , width , " H:" , height)
+        if (DEBUG_IMPR):
+            print("Image charateristics: W:" , width , " H:" , height)
         return { "height": height, "width": width, "channels": channels }
 
     # Verifica la varianza (componentes de baja frecuencia) para analizar el enfoque
@@ -264,8 +303,9 @@ class Imp:
     # , filename, doc
     def test_image(self):
         img = cv2.imread ( self.filename)
-        print(self.filename)
-        print(self.doc)
+        if (DEBUG_IMPR):
+            print(self.filename)
+            print(self.doc)
         # height, width, channels = img.shape
         result = {}
         # Definicion de los valores iniciales
@@ -285,7 +325,8 @@ class Imp:
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         (mean, blurry) = self.detect_blur_fft(gray, size=60,thresh = 10)
         result["mean_fft"] = mean
-        print(blurry)
+        if (DEBUG_IMPR):
+            print(blurry)
         result["blurry"] = 0
         if (blurry):
             result["blurry"] = 1
@@ -299,7 +340,15 @@ class Imp:
         # detecta numero de caras en la imagen
         faces = self.detect_faces(img, self.doc)
         result["faces"] = len(faces)
+        
+        # detecta numero de ojos en la imagen
+        eyes = self.detect_eyes(img, self.doc)
+        result["eyes"] = len(eyes)
 
+        # Si se detecta mas de una cara se rechaza
+        if len(eyes) != 2:
+            motivos.append("No se detectaron los ojos")
+            result["status"] = "rechazado"
         # result["mask"] = detect_mask(img, doc)
 
         # print("Mascara : " , result["mask"])
@@ -326,7 +375,7 @@ class Imp:
         # Si la imagen es muy grande la reduce a un ancho de 2048 (para poder procesarla)
         if (result["original_size"]["width"] > 2048):
             img = self.image_resize(img, width=2048)
-            cv2.imwrite(filename, img)
+            cv2.imwrite(self.filename, img)
 
         # Si la imagen tiene menos de 640x480 (o uno de los dos) se rechaza por resolucion
         elif ((result["original_size"]["width"] < 640) or (result["original_size"]["height"] < 800)):
