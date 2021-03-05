@@ -5,16 +5,22 @@ import base64
 from PIL import Image
 from io import BytesIO
 import time
+import os
 from os import path
 from os.path import dirname
 import json
 
-DEBUG_IMPR = False
+DEBUG_IMG = os.environ.get("DEBUG_IMG")
+DEBUG_IMGS = os.environ.get("DEBUG_IMGS")
+DEBUG_JSON = os.environ.get("DEBUG_JSON")
+DEBUG_IMPR = os.environ.get("DEBUG_IMPR")
 class Imp:
   
-    def __init__(self, filename, doc):
+    def __init__(self, filename, doc, image_name):
         self.filename = 'uploads/' + filename
         self.doc = doc
+        self.document = doc
+        self.original_name = image_name
         # self.result = []
 
     def convert_and_save(self, b64_string):
@@ -151,52 +157,56 @@ class Imp:
         # print(faces)
         if (DEBUG_IMPR):
             print("Face coordinates: " , faces)
-        # Draw rectangle around the faces
-        # Draw a rectangle around the faces
-        for (x, y, w, h) in faces:
-            # cv2.rectangle(gray, (x, y), (x+w, y+h), (0, 255, 0), 2)
+
+        if (DEBUG_IMGS): 
+            # Draw rectangle around the faces
+            # Draw a rectangle around the faces
+            for (x, y, w, h) in faces:
+                cv2.rectangle(gray, (x, y), (x+w, y+h), (0, 255, 0), 2)
 
             # Graba la imagen con el rectangulo
             cv2.imwrite('crops/' + 'salida_' + doc + '.jpg', img)
 
-            rw = w/width
-            rh = h/height
+        rw = w/width
+        rh = h/height
 
-            of_x = (int)((w*rw/0.5)/4)
-            of_y = (int)((h*rh/0.2)/4)
+        of_x = (int)((w*rw/0.5)/4)
+        of_y = (int)((h*rh/0.2)/4)
 
 
-            if (DEBUG_IMPR):
-                print("Relaciones de ancho y alto con imagen Rw, Rh", rw, rh )
-                print("Ofset de ancho y alto con imagen of_x, of_y", of_x, of_y )
+        if (DEBUG_IMPR):
+            print("Relaciones de ancho y alto con imagen Rw, Rh", rw, rh )
+            print("Ofset de ancho y alto con imagen of_x, of_y", of_x, of_y )
 
-            x1 = x - of_x
-            if (x1 < 0):
-                x1 = 0
-            y1 = y - of_y
-            if (y1 < 0):
-                y1 = 0
-            x2 = x+w+of_x
-            if (x2 > width):
-                x2 = width
-            y2 = y+h+of_y
-            if (y2 > height):
-                y2 = height    
-            
-            if (DEBUG_IMPR):
-                print("Coordenadas recorte" , y1,y2,x1,x2)
+        x1 = x - of_x
+        if (x1 < 0):
+            x1 = 0
+        y1 = y - of_y
+        if (y1 < 0):
+            y1 = 0
+        x2 = x+w+of_x
+        if (x2 > width):
+            x2 = width
+        y2 = y+h+of_y
+        if (y2 > height):
+            y2 = height    
+        
+        if (DEBUG_IMPR):
+            print("Coordenadas recorte" , y1,y2,x1,x2)
 
+        if (DEBUG_IMGS):
             faceimg = img[y:y+h,x:x+w]
             cv2.imwrite('crops/face_' + doc + '.jpg', faceimg)
 
             img2 = img[y1:y2,x1:x2]
             cv2.imwrite('crops/frame_' + doc + '.jpg', img2)
 
-            img2 = self.image_resize(img2, width=640)
-            # write the output
-            if (DEBUG_IMPR):
-                print("Escribiendo imagen recortada")
-            cv2.imwrite('crops/crop_' + doc + '.jpg', img2)
+        img2 = self.image_resize(img2, width=640)
+
+        # write the output
+        if (DEBUG_IMPR):
+            print("Escribiendo imagen recortada")
+        cv2.imwrite('crops/crop_' + doc + '.jpg', img2)
 
     # Detecta las caras que esten en la imagen        
     def detect_faces(self, img, doc):
@@ -207,7 +217,8 @@ class Imp:
         eye_cascade = cv2.CascadeClassifier(cv2.data.haarcascades +'haarcascade_eye.xml')
         # Convert into grayscale
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        cv2.imwrite('crops/' + 'gray_' + doc + '.jpg', gray)
+        if (DEBUG_IMG):
+            cv2.imwrite('crops/' + 'gray_' + doc + '.jpg', gray)
         # Detect faces
         faces = face_cascade.detectMultiScale(
             gray, 
@@ -218,12 +229,13 @@ class Imp:
         if (DEBUG_IMPR):
             print ("Found {0} faces!".format(len(faces)))
 
-        faceImg = img
-        # # Draw a rectangle around the faces
-        # for (x, y, w, h) in faces:
-        #     cv2.rectangle(faceImg, (x, y), (x+w, y+h), (0, 255, 0), 2)
-            
-        cv2.imwrite('crops/' + 'faces_' + doc + '.jpg', faceImg)
+        if (DEBUG_IMG):
+            faceImg = img
+            # Draw a rectangle around the faces
+            for (x, y, w, h) in faces:
+                cv2.rectangle(faceImg, (x, y), (x+w, y+h), (0, 255, 0), 2)
+                
+            cv2.imwrite('crops/' + 'faces_' + doc + '.jpg', faceImg)
 
         return faces
 
@@ -236,22 +248,58 @@ class Imp:
         eye_cascade = cv2.CascadeClassifier(cv2.data.haarcascades +'haarcascade_eye.xml')
         # Convert into grayscale
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        cv2.imwrite('crops/' + 'gray_' + doc + '.jpg', gray)
+        if (DEBUG_IMG):
+            cv2.imwrite('crops/' + 'gray_' + doc + '.jpg', gray)
         # Detect faces
-        eyes = eye_cascade.detectMultiScale(gray)
+        eyes = eye_cascade.detectMultiScale(gray,1.3,11)
         if (DEBUG_IMPR):
             print ("Found {0} eyes!".format(len(eyes)))
 
-        faceImg = img
-        # Draw a rectangle around the faces
-        for (x, y, w, h) in eyes:
-            cv2.rectangle(faceImg, (x, y), (x+w, y+h), (0, 255, 0), 2)
-            
-        cv2.imwrite('crops/' + 'eyes_' + doc + '.jpg', faceImg)
+        if (DEBUG_IMG):
+            faceImg = img
+            # Draw a rectangle around the faces
+            for (x, y, w, h) in eyes:
+                cv2.rectangle(faceImg, (x, y), (x+w, y+h), (0, 255, 0), 2)
+                
+            cv2.imwrite('crops/' + 'eyes_' + doc + '.jpg', faceImg)
 
         return eyes
 
-    
+    # Detecta los ojos que esten en la imagen        
+    def detect_mouth(self, img, doc):
+        # Get image sizes
+        # height, width, channels = img.shape
+        # Load the cascade
+        mouth_cascade = cv2.CascadeClassifier(cv2.data.haarcascades +'haarcascade_frontalface_default.xml')
+        test = mouth_cascade.load('haarcascade_mcs_mouth.xml')
+        print('Load:' , test)
+
+        # mouth_cascade = cv2.CascadeClassifier(cv2.data.haarcascades +'Mouth.xml')
+        # face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades +'haarcascade_frontalface_default.xml')
+        # test = face_cascade.load('haarcascade_mcs_mouth.xml')
+        # eye_cascade = cv2.CascadeClassifier(cv2.data.haarcascades +'haarcascade_eye.xml')
+        # Convert into grayscale
+        # print(mouth_cascade)
+        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        if (DEBUG_IMG):
+            cv2.imwrite('crops/' + 'gray_' + doc + '.jpg', gray)
+        # Detect faces
+        mouth = mouth_cascade.detectMultiScale(gray,1.7,11)
+        
+        if (DEBUG_IMPR):
+            print ("Found {0} eyes!".format(len(mouth)))
+
+        if (DEBUG_IMPR):
+            faceImg = img
+            # Draw a rectangle around the faces
+            for (x,y,w,h) in mouth:
+                y = int(y - 0.15*h)
+                cv2.rectangle(faceImg, (x,y), (x+w,y+h), (0,255,0), 3)
+                break   
+            
+            cv2.imwrite('crops/' + 'mouth_' + doc + '.jpg', faceImg)
+
+        return mouth
 
     # Determinar las caracteristicas de W,H y canales
     def test_size(self, img):
@@ -311,19 +359,23 @@ class Imp:
         # Definicion de los valores iniciales
         result["infile"] = self.filename
         result["outfile"] = ""
+        result["original_name"] = self.original_name
         result["status"] = "aprobado"
         result["motivos"] = []
         result["original_size"] = self.test_size(img)
         result["final_size"] = {}
         result["blur"] = self.test_blur(img)
         result["process_time"] = 0
+        result["faces"] = 0
+        result["eyes"] = 0
+        result["mouth"] = 0
         # result["start_time"] = datetime.now()
         
         start = time.time()
 
         #Convierte la imagen a tonos de grises
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        (mean, blurry) = self.detect_blur_fft(gray, size=60,thresh = 10)
+        (mean, blurry) = self.detect_blur_fft(gray, size=60,thresh = 6)
         result["mean_fft"] = mean
         if (DEBUG_IMPR):
             print(blurry)
@@ -333,7 +385,6 @@ class Imp:
             
         # result["blurry_fft"] = blurry
 
-        result["faces"] = 0
         result["image"] = ""
         motivos = []
         
@@ -345,9 +396,13 @@ class Imp:
         eyes = self.detect_eyes(img, self.doc)
         result["eyes"] = len(eyes)
 
+        # detecta la boca en la imagen
+        mouth = self.detect_mouth(img, self.doc)
+        result["mouth"] = len(mouth)
+
         # Si se detecta mas de una cara se rechaza
         if len(eyes) != 2:
-            motivos.append("No se detectaron los ojos")
+            motivos.append("No se detectaron los dos ojos")
             result["status"] = "rechazado"
         # result["mask"] = detect_mask(img, doc)
 
@@ -369,7 +424,7 @@ class Imp:
 
         # Si la varianza es menor a 100 define imagen borrosa -> rechaza
         if result["blurry"] == 1:
-            motivos.append("Imagen desenfocada")
+            motivos.append("Imagen desenfocada o bajo contraste")
             result["status"] = "rechazado"
         
         # Si la imagen es muy grande la reduce a un ancho de 2048 (para poder procesarla)
@@ -401,8 +456,9 @@ class Imp:
         if result["status"] != "aprobado":
             result["motivos"]= motivos
 
-        with open('crops/response_' + self.doc + '.json', 'w') as json_file:
-            json.dump(result, json_file)
+        if(DEBUG_JSON):
+            with open('crops/response_' + self.doc + '.json', 'w') as json_file:
+                json.dump(result, json_file)
 
         result["process_time"] = time.time() - start
         

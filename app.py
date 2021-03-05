@@ -30,9 +30,6 @@ from impr import Imp
 from flask import Flask,  request, make_response, render_template, send_from_directory
 from flask_restful import Resource, Api, reqparse
 from flask_cors import CORS
-
-
-
 # from flask_sqlalchemy import SQLAlchemy
 # from werkzeug.security import generate_password_hash, check_password_hash
 # import uuid
@@ -79,9 +76,9 @@ Returns:
     }
 """
 
-
 api = Api(app)
 CORS(app)
+
 
 app.config['SECRET_KEY']='S3cr3t'
 app.config['SQLALCHEMY_DATABASE_URI']='sqlite://///Users/amejia/Proyectos/QA/bioecpimg/library.db'
@@ -211,8 +208,11 @@ class ProcessImageEndpoint(Resource):
         gfh = datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
         # Se realiza un POST al endpoint
         file = request.files['file']
-        # doc = request['doc']
-        doc = request.values["doc"] + '_' + gfh
+        archivo = file.filename
+        print("Nombre del archivo:")
+        print(file.filename)
+        doc = request.values['doc'] + '-' + gfh
+        # image_name = request.values["doc"] + '_' + gfh
         # print (request)
         print(file)
         # print(doc)
@@ -224,13 +224,13 @@ class ProcessImageEndpoint(Resource):
             if file and allowed_file(file.filename):
                 #filename = file.filename
                 filename = doc + '.jpg'
-                print(filename)
+                # print(filename)
                 # print(doc)
                 file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
                 # filename = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-                filename = filename
+                # filename = filename
 
-                ip = Imp(filename, doc)
+                ip = Imp(filename, doc, archivo)
                 res = ip.test_image()
 
         return res
