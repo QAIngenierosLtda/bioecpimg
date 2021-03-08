@@ -16,6 +16,9 @@
                 "DEBUG_IMGS": "False",
                 "DEBUG_IMPR": "False",
                 "DEBUG_JSON": "False",
+                "EYE_NEIGHBORS": "3",
+                "EYE_SCALE" : "1.2",
+                "EYE_SIZE" : "50"
             },
             "args": [
                 "run",

@@ -14,6 +14,9 @@ DEBUG_IMG = os.environ.get("DEBUG_IMG")
 DEBUG_IMGS = os.environ.get("DEBUG_IMGS")
 DEBUG_JSON = os.environ.get("DEBUG_JSON")
 DEBUG_IMPR = os.environ.get("DEBUG_IMPR")
+Eye_Scale = float(os.environ.get("EYE_SCALE"))
+Eye_Neighbors = int(os.environ.get("EYE_NEIGHBORS"))
+Eye_Size = int(os.environ.get("EYE_SIZE"))
 class Imp:
   
     def __init__(self, filename, doc, image_name):
@@ -145,12 +148,12 @@ class Imp:
         
         faces = face_cascade.detectMultiScale(
             gray, 
-            scaleFactor = 1.2, 
+            scaleFactor = 1.3, 
             minNeighbors = 5,
             minSize = (200,200)
         )
 
-        eyes = eye_cascade.detectMultiScale(gray)
+        eyes = eye_cascade.detectMultiScale(gray,Eye_Scale, Eye_Neighbors, minSize=(Eye_Size,Eye_Size))
         print(eyes)
 
         # print(filename)
@@ -217,8 +220,8 @@ class Imp:
         eye_cascade = cv2.CascadeClassifier(cv2.data.haarcascades +'haarcascade_eye.xml')
         # Convert into grayscale
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        if (DEBUG_IMG):
-            cv2.imwrite('crops/' + 'gray_' + doc + '.jpg', gray)
+        # if (DEBUG_IMG):
+        cv2.imwrite('crops/' + 'gray_' + doc + '.jpg', gray)
         # Detect faces
         faces = face_cascade.detectMultiScale(
             gray, 
@@ -248,10 +251,10 @@ class Imp:
         eye_cascade = cv2.CascadeClassifier(cv2.data.haarcascades +'haarcascade_eye.xml')
         # Convert into grayscale
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        if (DEBUG_IMG):
-            cv2.imwrite('crops/' + 'gray_' + doc + '.jpg', gray)
+        # if (DEBUG_IMG):
+        cv2.imwrite('crops/' + 'gray_' + doc + '.jpg', gray)
         # Detect faces
-        eyes = eye_cascade.detectMultiScale(gray,1.3,11)
+        eyes = eye_cascade.detectMultiScale(gray,Eye_Scale,Eye_Neighbors, minSize=(Eye_Size,Eye_Size))
         if (DEBUG_IMPR):
             print ("Found {0} eyes!".format(len(eyes)))
 
@@ -281,13 +284,16 @@ class Imp:
         # Convert into grayscale
         # print(mouth_cascade)
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        if (DEBUG_IMG):
-            cv2.imwrite('crops/' + 'gray_' + doc + '.jpg', gray)
-        # Detect faces
-        mouth = mouth_cascade.detectMultiScale(gray,1.7,11)
-        
+        # if (DEBUG_IMG):
+        cv2.imwrite('crops/' + 'gray_' + doc + '.jpg', gray)
+        try:
+            # Detect faces
+            mouth = mouth_cascade.detectMultiScale(gray,1.7,11)
+        except:
+            print("Error detectando bocas")
+
         if (DEBUG_IMPR):
-            print ("Found {0} eyes!".format(len(mouth)))
+            print ("Found {0} mouths!".format(len(mouth)))
 
         if (DEBUG_IMPR):
             faceImg = img
@@ -397,12 +403,12 @@ class Imp:
         result["eyes"] = len(eyes)
 
         # detecta la boca en la imagen
-        mouth = self.detect_mouth(img, self.doc)
-        result["mouth"] = len(mouth)
+        # mouth = self.detect_mouth(img, self.doc)
+        # result["mouth"] = len(mouth)
 
         # Si se detecta mas de una cara se rechaza
         if len(eyes) != 2:
-            motivos.append("No se detectaron los dos ojos")
+            motivos.append("La imagen no es válida, por favor cargue una imagen en la que los ojos sean visibles.")
             result["status"] = "rechazado"
         # result["mask"] = detect_mask(img, doc)
 
@@ -414,17 +420,22 @@ class Imp:
 
         # Si se detecta mas de una cara se rechaza
         if len(faces) > 1:
-            motivos.append("Mas de una cara")
+            motivos.append("La imagen no es válida,  se identificaron varios rostros en la imagen, por favor cargue una imagen con la cara centrada y con suficente espacio libre a los costados.")
             result["status"] = "rechazado"
 
         # Si NO se detecta cara valida se rechaza
         if len(faces) == 0:
-            motivos.append("No se detecto una cara valida")
+            motivos.append("La imagen no es válida, por favor cargue una imagen tomada de frente.")
             result["status"] = "rechazado"
+        
+        # Si NO se detecta una boca valida se rechaza
+        # if len(mouth) == 0:
+        #     motivos.append("La imagen no es válida, por favor cargue una imagen en la que la boca sea visible.")
+        #     result["status"] = "rechazado"
 
         # Si la varianza es menor a 100 define imagen borrosa -> rechaza
         if result["blurry"] == 1:
-            motivos.append("Imagen desenfocada o bajo contraste")
+            motivos.append("La imagen no es válida, por favor cargue una imagen más clara.")
             result["status"] = "rechazado"
         
         # Si la imagen es muy grande la reduce a un ancho de 2048 (para poder procesarla)
@@ -434,7 +445,7 @@ class Imp:
 
         # Si la imagen tiene menos de 640x480 (o uno de los dos) se rechaza por resolucion
         elif ((result["original_size"]["width"] < 640) or (result["original_size"]["height"] < 800)):
-            motivos.append("Imagen pequena")
+            motivos.append("La imagen no es válida,por favor cargue una imagen más grande o intente tomarse una 'selfie'")
             result["status"] = "rechazado"
             
         # Si cumple las condiciones recorta la imagen alrededor de la cara
@@ -449,7 +460,7 @@ class Imp:
                 result["outfile"] = "crop_" + self.doc
             else:
                 result["status"] = "rechazado"
-                motivos.append("No fue posible crear recorte de imagen")
+                motivos.append("La imagen no es válida, por favor cargue una imagen con la cara centrada y con suficente espacio libre a los costados.")
                 result["image"] = ""
 
         # Si la imagen se ha rechazado , se actualiza los motivos
