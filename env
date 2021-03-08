@@ -1,0 +1,6 @@
+FLASK_APP=app.py
+FLASK_ENV=development
+DEBUG_IMG=False
+DEBUG_IMGS=False
+DEBUG_IMPR=False
+DEBUG_JSON=False
