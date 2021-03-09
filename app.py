@@ -216,16 +216,19 @@ class ProcessImageEndpoint(Resource):
         print(file.filename)
         doc = request.values['doc'] + '-' + gfh
         
+        # Si el post contiene parametro de scale se toma, sino se lee del env
         if 'scale' in request.values:
             scale = request.values["scale"]
         else:
             scale = os.environ.get('EYE_SCALE')
         
+        # Si el post contiene parametro de nb se toma, sino se lee del env
         if 'nb' in request.values:
             neighbors = request.values["nb"]
         else:
             neighbors = os.environ.get('EYE_NEIGHBORS')
 
+        # Si el post contiene parametro de eyesize se toma, sino se lee del env
         if 'eyesize' in request.values:
             eyesize = request.values["eyesize"]
         else:
