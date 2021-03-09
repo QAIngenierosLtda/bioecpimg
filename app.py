@@ -143,14 +143,17 @@ def upload_base64_file():
         img_data = data['img']
         gfh = datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
         doc = data["doc"] + '_' + gfh
-
+        image_name = data["filename"]
+        scale = data["scale"]
+        neighbors = data["nb"]
+        eyesize = data["eyesize"]
         
         img_data = img_data[img_data.find(",")+1:]
         im = Image.open(BytesIO(base64.b64decode(img_data)))
         im.save(os.path.join(app.config['UPLOAD_FOLDER'], doc + '.jpg'));
         filename = doc + '.jpg'
 
-        ip = Imp(filename, doc)
+        ip = Imp(filename, doc, image_name, scale, neighbors, eyesize)
         res = ip.test_image()
 
         # res = imageprocessing.test_image(os.path.join(app.config['UPLOAD_FOLDER'], filename), doc)
@@ -212,10 +215,30 @@ class ProcessImageEndpoint(Resource):
         print("Nombre del archivo:")
         print(file.filename)
         doc = request.values['doc'] + '-' + gfh
+        
+        # Si el post contiene parametro de scale se toma, sino se lee del env
+        if 'scale' in request.values:
+            scale = request.values["scale"]
+        else:
+            scale = os.environ.get('EYE_SCALE')
+        
+        # Si el post contiene parametro de nb se toma, sino se lee del env
+        if 'nb' in request.values:
+            neighbors = request.values["nb"]
+        else:
+            neighbors = os.environ.get('EYE_NEIGHBORS')
+
+        # Si el post contiene parametro de eyesize se toma, sino se lee del env
+        if 'eyesize' in request.values:
+            eyesize = request.values["eyesize"]
+        else:
+            eyesize = os.environ.get('EYE_SIZE')
+        
         # image_name = request.values["doc"] + '_' + gfh
         # print (request)
         print(file)
-        # print(doc)
+        # if(os.environ.get('DEBUG_IMPR')):
+        #     print("Parametros : \n doc : {0}". doc)
 
         res = {"success": False, "msg": "No image sent :("}
         # print(file)
@@ -230,7 +253,8 @@ class ProcessImageEndpoint(Resource):
                 # filename = os.path.join(app.config['UPLOAD_FOLDER'], filename)
                 # filename = filename
 
-                ip = Imp(filename, doc, archivo)
+                # ip = Imp(filename, doc, archivo)
+                ip = Imp(filename, doc, archivo, scale, neighbors, eyesize)
                 res = ip.test_image()
 
         return res

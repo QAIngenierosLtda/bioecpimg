@@ -19,11 +19,14 @@ Eye_Neighbors = int(os.environ.get("EYE_NEIGHBORS"))
 Eye_Size = int(os.environ.get("EYE_SIZE"))
 class Imp:
   
-    def __init__(self, filename, doc, image_name):
+    def __init__(self, filename, doc, image_name, scale, neighbors, eyesize):
         self.filename = 'uploads/' + filename
         self.doc = doc
         self.document = doc
         self.original_name = image_name
+        self.scale = float(scale)
+        self.neighbors = int(neighbors)
+        self.eyesize = int(eyesize)
         # self.result = []
 
     def convert_and_save(self, b64_string):
@@ -153,7 +156,7 @@ class Imp:
             minSize = (200,200)
         )
 
-        eyes = eye_cascade.detectMultiScale(gray,Eye_Scale, Eye_Neighbors, minSize=(Eye_Size,Eye_Size))
+        eyes = eye_cascade.detectMultiScale(gray,self.scale, self.neighbors, minSize=(self.eyesize,self.eyesize))
         print(eyes)
 
         # print(filename)
@@ -254,7 +257,7 @@ class Imp:
         # if (DEBUG_IMG):
         cv2.imwrite('crops/' + 'gray_' + doc + '.jpg', gray)
         # Detect faces
-        eyes = eye_cascade.detectMultiScale(gray,Eye_Scale,Eye_Neighbors, minSize=(Eye_Size,Eye_Size))
+        eyes = eye_cascade.detectMultiScale(gray,self.scale,self.neighbors, minSize=(self.eyesize,self.eyesize))
         if (DEBUG_IMPR):
             print ("Found {0} eyes!".format(len(eyes)))
 
@@ -357,6 +360,7 @@ class Imp:
     # , filename, doc
     def test_image(self):
         img = cv2.imread ( self.filename)
+
         if (DEBUG_IMPR):
             print(self.filename)
             print(self.doc)
@@ -378,6 +382,11 @@ class Imp:
         # result["start_time"] = datetime.now()
         
         start = time.time()
+
+        # Si la imagen es muy grande la reduce a un ancho de 2048 (para poder procesarla)
+        if (result["original_size"]["width"] > 2048):
+            img = self.image_resize(img, width=2048)
+            cv2.imwrite(self.filename, img)
 
         #Convierte la imagen a tonos de grises
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -438,10 +447,7 @@ class Imp:
             motivos.append("La imagen no es válida, por favor cargue una imagen más clara.")
             result["status"] = "rechazado"
         
-        # Si la imagen es muy grande la reduce a un ancho de 2048 (para poder procesarla)
-        if (result["original_size"]["width"] > 2048):
-            img = self.image_resize(img, width=2048)
-            cv2.imwrite(self.filename, img)
+        
 
         # Si la imagen tiene menos de 640x480 (o uno de los dos) se rechaza por resolucion
         elif ((result["original_size"]["width"] < 640) or (result["original_size"]["height"] < 800)):
