@@ -147,13 +147,17 @@ def upload_base64_file():
         scale = data["scale"]
         neighbors = data["nb"]
         eyesize = data["eyesize"]
+        mscale = data["m_scale"]
+        mneighbors = data["m_nb"]
+        msizex = data["m_size_x"]
+        msizey = data["m_size_y"]
         
         img_data = img_data[img_data.find(",")+1:]
         im = Image.open(BytesIO(base64.b64decode(img_data)))
         im.save(os.path.join(app.config['UPLOAD_FOLDER'], doc + '.jpg'));
         filename = doc + '.jpg'
 
-        ip = Imp(filename, doc, image_name, scale, neighbors, eyesize)
+        ip = Imp(filename, doc, image_name, scale, neighbors, eyesize, mscale, mneighbors,msizex, msizey)
         res = ip.test_image()
 
         # res = imageprocessing.test_image(os.path.join(app.config['UPLOAD_FOLDER'], filename), doc)
@@ -233,6 +237,26 @@ class ProcessImageEndpoint(Resource):
             eyesize = request.values["eyesize"]
         else:
             eyesize = os.environ.get('EYE_SIZE')
+
+        if 'mscale' in request.values:
+            mscale = request.values["mscale"]
+        else:
+            mscale = os.environ.get('MOUTH_SCALE')
+        
+        if 'mnb' in request.values:
+            mnb = request.values["mnb"]
+        else:
+            mnb = os.environ.get('MOUTH_NEIGHBORS')
+        
+        if 'm_size_x' in request.values:
+            msizex = request.values["m_size_x"]
+        else:
+            msizex = os.environ.get('MOUTH_SIZE_X')
+        
+        if 'm_size_y' in request.values:
+            msizey = request.values["m_size_y"]
+        else:
+            msizey = os.environ.get('MOUTH_SIZE_Y')
         
         # image_name = request.values["doc"] + '_' + gfh
         # print (request)
@@ -254,7 +278,8 @@ class ProcessImageEndpoint(Resource):
                 # filename = filename
 
                 # ip = Imp(filename, doc, archivo)
-                ip = Imp(filename, doc, archivo, scale, neighbors, eyesize)
+                ip = Imp(filename, doc, archivo, scale, neighbors, eyesize, mscale, mnb ,msizex, msizey)
+                # ip = Imp(filename, doc, archivo, scale, neighbors, eyesize)
                 res = ip.test_image()
 
         return res

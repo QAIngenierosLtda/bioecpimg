@@ -18,7 +18,11 @@
                 "DEBUG_JSON": "False",
                 "EYE_NEIGHBORS": "3",
                 "EYE_SCALE" : "1.2",
-                "EYE_SIZE" : "50"
+                "EYE_SIZE" : "50",
+                "MOUTH_NEIGHBORS": "3",
+                "MOUTH_SCALE" : "1.2",
+                "MOUTH_SIZE_X" : "300",
+                "MOUTH_SIZE_Y" : "150",
             },
             "args": [
                 "run",

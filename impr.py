@@ -19,7 +19,7 @@ Eye_Neighbors = int(os.environ.get("EYE_NEIGHBORS"))
 Eye_Size = int(os.environ.get("EYE_SIZE"))
 class Imp:
   
-    def __init__(self, filename, doc, image_name, scale, neighbors, eyesize):
+    def __init__(self, filename, doc, image_name, scale, neighbors, eyesize, mscale, mneighbors,msizex, msizey):
         self.filename = 'uploads/' + filename
         self.doc = doc
         self.document = doc
@@ -27,6 +27,8 @@ class Imp:
         self.scale = float(scale)
         self.neighbors = int(neighbors)
         self.eyesize = int(eyesize)
+        self.mouthScale = float(mscale)
+        self.mouthNeighbors = int(mneighbors)
         # self.result = []
 
     def convert_and_save(self, b64_string):
@@ -218,9 +220,16 @@ class Imp:
     def detect_faces(self, img, doc):
         # Get image sizes
         height, width, channels = img.shape
+        faces = []
+        eyes = []
+        mouth = []
         # Load the cascade
         face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades +'haarcascade_frontalface_default.xml')
         eye_cascade = cv2.CascadeClassifier(cv2.data.haarcascades +'haarcascade_eye.xml')
+        mouth_cascade = cv2.CascadeClassifier('haarcascade_mouth.xml')
+
+        # if mouth_cascade.empty():
+        #     raise IOError('Unable to load the mouth cascade classifier xml file')
         # Convert into grayscale
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         # if (DEBUG_IMG):
@@ -236,12 +245,25 @@ class Imp:
         if (DEBUG_IMPR):
             print ("Found {0} faces!".format(len(faces)))
 
+        faceImg = img
         # En cada face detecta los ojos
         for (x, y, w, h) in faces:
             faceImg = img[y:y+h,x:x+w]
             grayface = cv2.cvtColor(faceImg, cv2.COLOR_BGR2GRAY)
-            cv2.imwrite('crops/' + 'grayface_' + doc + '.jpg', grayface)
-            eyes = eye_cascade.detectMultiScale(grayface,self.scale,self.neighbors, minSize=(self.eyesize,self.eyesize))
+            if (DEBUG_IMG):
+                cv2.imwrite('crops/' + 'grayface_' + doc + '.jpg', grayface)
+            eyes = eye_cascade.detectMultiScale(
+                grayface,
+                self.scale,
+                self.neighbors, 
+                minSize=(int(width/20),int(height/20))
+            )
+            mouth = mouth_cascade.detectMultiScale(
+                grayface, 
+                scaleFactor = self.mouthScale, 
+                minNeighbors = self.mouthNeighbors,
+                minSize = (int(width/10),int(height/25))
+            )
             
             if (DEBUG_IMPR):
                 print ("Found {0} eyes!".format(len(eyes)))
@@ -251,15 +273,19 @@ class Imp:
         if (DEBUG_IMG):
             
             # Draw a rectangle around the faces
-            for (x, y, w, h) in faces:
-                cv2.rectangle(faceImg, (x, y), (x+w, y+h), (0, 255, 0), 2)
+            # for (x, y, w, h) in faces:
+            #     cv2.rectangle(faceImg, (x, y), (x+w, y+h), (0, 0, 255), 2)
 
-            for (x, y, w, h) in eyes:
-                cv2.rectangle(faceImg, (x, y), (x+w, y+h), (0, 255, 0), 2)
+            if len(eyes) > 0:
+                for (x, y, w, h) in eyes:
+                    cv2.rectangle(faceImg, (x, y), (x+w, y+h), (0, 255, 0), 2)
+            if len(mouth) > 0:
+                for (x, y, w, h) in mouth:
+                    cv2.rectangle(faceImg, (x, y), (x+w, y+h), (255, 255, 0), 2)
             # cv2.imwrite('crops/' + 'eyes_' + doc + '.jpg', faceImg) 
             cv2.imwrite('crops/' + 'faces_' + doc + '.jpg', faceImg)
             
-        return [faces, eyes]
+        return [faces, eyes, mouth]
 
     # Detecta los ojos que esten en la imagen        
     def detect_eyes(self, img, doc):
@@ -395,6 +421,7 @@ class Imp:
         result["faces"] = 0
         result["eyes"] = 0
         result["mouth"] = 0
+        result["version_api"] = "bioecpimg:2.0"
         # result["start_time"] = datetime.now()
         
         start = time.time()
@@ -420,9 +447,10 @@ class Imp:
         motivos = []
         
         # detecta numero de caras en la imagen
-        (faces, eyes) = self.detect_faces(img, self.doc)
+        (faces, eyes, mouth) = self.detect_faces(img, self.doc)
         result["faces"] = len(faces)
         result["eyes"] = len(eyes)
+        result["mouth"] = len(mouth)
         
         # # detecta numero de ojos en la imagen
         # eyes = self.detect_eyes(img, self.doc)
