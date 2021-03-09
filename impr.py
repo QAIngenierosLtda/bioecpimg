@@ -361,11 +361,6 @@ class Imp:
     def test_image(self):
         img = cv2.imread ( self.filename)
 
-        # Si la imagen es muy grande la reduce a un ancho de 2048 (para poder procesarla)
-        if (result["original_size"]["width"] > 2048):
-            img = self.image_resize(img, width=2048)
-            cv2.imwrite(self.filename, img)
-
         if (DEBUG_IMPR):
             print(self.filename)
             print(self.doc)
@@ -387,6 +382,11 @@ class Imp:
         # result["start_time"] = datetime.now()
         
         start = time.time()
+
+        # Si la imagen es muy grande la reduce a un ancho de 2048 (para poder procesarla)
+        if (result["original_size"]["width"] > 2048):
+            img = self.image_resize(img, width=2048)
+            cv2.imwrite(self.filename, img)
 
         #Convierte la imagen a tonos de grises
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
