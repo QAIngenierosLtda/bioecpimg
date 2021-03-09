@@ -131,11 +131,11 @@ class Imp:
         return resized
 
     # Recorta la imagen alrededor de la cara detectada
-    def crop_image(self, filename, doc):
+    def crop_image(self, filename, doc, faces):
         
         # Load the cascade
         face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades +'haarcascade_frontalface_default.xml')
-        eye_cascade = cv2.CascadeClassifier(cv2.data.haarcascades +'haarcascade_eye.xml')
+        # eye_cascade = cv2.CascadeClassifier(cv2.data.haarcascades +'haarcascade_eye.xml')
 
         # Read the input image
         img = cv2.imread(self.filename)
@@ -147,77 +147,77 @@ class Imp:
         # Convert into grayscale
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
-        # Detect faces
-        
-        faces = face_cascade.detectMultiScale(
-            gray, 
-            scaleFactor = 1.3, 
-            minNeighbors = 5,
-            minSize = (200,200)
-        )
+        # # Detect faces
+        # faces = face_cascade.detectMultiScale(
+        #     gray, 
+        #     scaleFactor = 1.3, 
+        #     minNeighbors = 5,
+        #     minSize = (200,200)
+        # )
 
-        eyes = eye_cascade.detectMultiScale(gray,self.scale, self.neighbors, minSize=(self.eyesize,self.eyesize))
-        print(eyes)
+        # eyes = eye_cascade.detectMultiScale(gray,self.scale, self.neighbors, minSize=(self.eyesize,self.eyesize))
+        # print(eyes)
 
         # print(filename)
-        # print(faces)
+        print(faces)
         if (DEBUG_IMPR):
             print("Face coordinates: " , faces)
 
-        if (DEBUG_IMGS): 
+        # if (DEBUG_IMGS): 
             # Draw rectangle around the faces
             # Draw a rectangle around the faces
-            for (x, y, w, h) in faces:
-                cv2.rectangle(gray, (x, y), (x+w, y+h), (0, 255, 0), 2)
+
+        for (x, y, w, h) in faces:
+            # cv2.rectangle(gray, (x, y), (x+w, y+h), (0, 255, 0), 2)
 
             # Graba la imagen con el rectangulo
-            cv2.imwrite('crops/' + 'salida_' + doc + '.jpg', img)
+            # cv2.imwrite('crops/' + 'salida_' + doc + '.jpg', img)
 
-        rw = w/width
-        rh = h/height
+            rw = w/width
+            rh = h/height
 
-        of_x = (int)((w*rw/0.5)/4)
-        of_y = (int)((h*rh/0.2)/4)
+            of_x = (int)((w*rw/0.9)/4)
+            of_y = (int)((h*rh/0.4)/4)
 
 
-        if (DEBUG_IMPR):
-            print("Relaciones de ancho y alto con imagen Rw, Rh", rw, rh )
-            print("Ofset de ancho y alto con imagen of_x, of_y", of_x, of_y )
+            if (DEBUG_IMPR):
+                print("Relaciones de ancho y alto con imagen Rw, Rh", rw, rh )
+                print("Ofset de ancho y alto con imagen of_x, of_y", of_x, of_y )
 
-        x1 = x - of_x
-        if (x1 < 0):
-            x1 = 0
-        y1 = y - of_y
-        if (y1 < 0):
-            y1 = 0
-        x2 = x+w+of_x
-        if (x2 > width):
-            x2 = width
-        y2 = y+h+of_y
-        if (y2 > height):
-            y2 = height    
-        
-        if (DEBUG_IMPR):
-            print("Coordenadas recorte" , y1,y2,x1,x2)
+            x1 = x - of_x
+            if (x1 < 0):
+                x1 = 0
+            y1 = y - of_y
+            if (y1 < 0):
+                y1 = 0
+            x2 = x+w+of_x
+            if (x2 > width):
+                x2 = width
+            y2 = y+h+of_y
+            if (y2 > height):
+                y2 = height    
+            
+            if (DEBUG_IMPR):
+                print("Coordenadas recorte" , y1,y2,x1,x2)
 
-        if (DEBUG_IMGS):
-            faceimg = img[y:y+h,x:x+w]
-            cv2.imwrite('crops/face_' + doc + '.jpg', faceimg)
+            if (DEBUG_IMGS):
+                faceimg = img[y:y+h,x:x+w]
+                cv2.imwrite('crops/face_' + doc + '.jpg', faceimg)
 
-            img2 = img[y1:y2,x1:x2]
-            cv2.imwrite('crops/frame_' + doc + '.jpg', img2)
+                img2 = img[y1:y2,x1:x2]
+                cv2.imwrite('crops/frame_' + doc + '.jpg', img2)
 
-        img2 = self.image_resize(img2, width=640)
+            img2 = self.image_resize(img2, width=640)
 
-        # write the output
-        if (DEBUG_IMPR):
-            print("Escribiendo imagen recortada")
-        cv2.imwrite('crops/crop_' + doc + '.jpg', img2)
+            # write the output
+            if (DEBUG_IMPR):
+                print("Escribiendo imagen recortada")
+            cv2.imwrite('crops/crop_' + doc + '.jpg', img2)
 
     # Detecta las caras que esten en la imagen        
     def detect_faces(self, img, doc):
         # Get image sizes
-        # height, width, channels = img.shape
+        height, width, channels = img.shape
         # Load the cascade
         face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades +'haarcascade_frontalface_default.xml')
         eye_cascade = cv2.CascadeClassifier(cv2.data.haarcascades +'haarcascade_eye.xml')
@@ -232,18 +232,34 @@ class Imp:
             minNeighbors = 5,
             minSize = (200,200)
         )
+
         if (DEBUG_IMPR):
             print ("Found {0} faces!".format(len(faces)))
 
+        # En cada face detecta los ojos
+        for (x, y, w, h) in faces:
+            faceImg = img[y:y+h,x:x+w]
+            grayface = cv2.cvtColor(faceImg, cv2.COLOR_BGR2GRAY)
+            cv2.imwrite('crops/' + 'grayface_' + doc + '.jpg', grayface)
+            eyes = eye_cascade.detectMultiScale(grayface,self.scale,self.neighbors, minSize=(self.eyesize,self.eyesize))
+            
+            if (DEBUG_IMPR):
+                print ("Found {0} eyes!".format(len(eyes)))
+        
+        
+
         if (DEBUG_IMG):
-            faceImg = img
+            
             # Draw a rectangle around the faces
             for (x, y, w, h) in faces:
                 cv2.rectangle(faceImg, (x, y), (x+w, y+h), (0, 255, 0), 2)
-                
-            cv2.imwrite('crops/' + 'faces_' + doc + '.jpg', faceImg)
 
-        return faces
+            for (x, y, w, h) in eyes:
+                cv2.rectangle(faceImg, (x, y), (x+w, y+h), (0, 255, 0), 2)
+            # cv2.imwrite('crops/' + 'eyes_' + doc + '.jpg', faceImg) 
+            cv2.imwrite('crops/' + 'faces_' + doc + '.jpg', faceImg)
+            
+        return [faces, eyes]
 
     # Detecta los ojos que esten en la imagen        
     def detect_eyes(self, img, doc):
@@ -404,12 +420,13 @@ class Imp:
         motivos = []
         
         # detecta numero de caras en la imagen
-        faces = self.detect_faces(img, self.doc)
+        (faces, eyes) = self.detect_faces(img, self.doc)
         result["faces"] = len(faces)
-        
-        # detecta numero de ojos en la imagen
-        eyes = self.detect_eyes(img, self.doc)
         result["eyes"] = len(eyes)
+        
+        # # detecta numero de ojos en la imagen
+        # eyes = self.detect_eyes(img, self.doc)
+        # result["eyes"] = len(eyes)
 
         # detecta la boca en la imagen
         # mouth = self.detect_mouth(img, self.doc)
@@ -456,7 +473,7 @@ class Imp:
             
         # Si cumple las condiciones recorta la imagen alrededor de la cara
         if img is not None and result["status"] == "aprobado":        
-            self.crop_image(self.filename, self.doc)
+            self.crop_image(self.filename, self.doc, faces)
             import base64
             if (path.exists("crops/face_" + self.doc + ".jpg")):
                 imgOut = cv2.imread("crops/crop_" + self.doc + ".jpg")
