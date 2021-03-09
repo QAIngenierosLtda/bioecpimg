@@ -16,11 +16,12 @@
   <body>
     <h1 style="text-align:center">BIOECP Img API</h1>
     <div class="container">
+
         <div class="row">
             <div class="col-md-4" >
                 <div class="card" style="height:600px;">
                     <div class="card-body">
-                        <img id="uploadImg" src="{{ url_for('upload_file', filename = 'imagen.jpg') }}" width="300px">
+                        <img id="uploadImg" src="{{ url_for('upload_file', filename = image_name ) }}" width="300px">
                     </div>
                     <div class="card-footer">
                         <h2 style="text-align: center;"> Imagen enviada </h2>
@@ -30,7 +31,7 @@
             <div class="col-md-4" >
                 <div class="card" style="height:600px;">
                     <div class="card-body">
-                        <img src="{{ url_for('result_file', filename = 'faces.jpg') }}" width="300px">
+                        <img src="{{ url_for('result_file', filename = faces_name ) }}" width="300px">
                     </div>
                     <div class="card-footer">
                         <h2 style="text-align: center;"> Cara detectada</h2>
@@ -40,7 +41,7 @@
             <div class="col-md-4">
                 <div class="card" style="height:600px;">
                     <div class="card-body">
-                        <img src="{{ url_for('result_file', filename = 'crop.jpg') }}" width="320px">
+                        <img src="{{ url_for('result_file', filename = crops_name) }}" width="320px">
                     </div>
                     <div class="card-footer">
                         <h2 style="text-align: center;"> Imagen de respuesta</h2>
@@ -58,15 +59,5 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
   </body>
-    <script>
-        function reloadPage(){
-            //$('#right').load('index.html?r='+Math.random());
-             location.reload(true);
-        }
-
-        setTimeout(function(){
-            window.location.reload(1);
-        }, 2000);
-    </script>
 
   </html>
