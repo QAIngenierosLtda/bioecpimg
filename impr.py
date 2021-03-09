@@ -19,11 +19,14 @@ Eye_Neighbors = int(os.environ.get("EYE_NEIGHBORS"))
 Eye_Size = int(os.environ.get("EYE_SIZE"))
 class Imp:
   
-    def __init__(self, filename, doc, image_name):
+    def __init__(self, filename, doc, image_name, scale, neighbors, eyesize):
         self.filename = 'uploads/' + filename
         self.doc = doc
         self.document = doc
         self.original_name = image_name
+        self.scale = scale
+        self.neighbors = neighbors
+        self.size = eyesize
         # self.result = []
 
     def convert_and_save(self, b64_string):
