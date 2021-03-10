@@ -23,6 +23,7 @@
                 "MOUTH_SCALE" : "1.2",
                 "MOUTH_SIZE_X" : "300",
                 "MOUTH_SIZE_Y" : "150",
+                "BLURR_THRESHOLD" : "6"
             },
             "args": [
                 "run",

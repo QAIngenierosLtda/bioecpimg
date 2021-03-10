@@ -17,6 +17,7 @@ DEBUG_IMPR = os.environ.get("DEBUG_IMPR")
 Eye_Scale = float(os.environ.get("EYE_SCALE"))
 Eye_Neighbors = int(os.environ.get("EYE_NEIGHBORS"))
 Eye_Size = int(os.environ.get("EYE_SIZE"))
+blurr_thershold = int(os.environ.get("BLURR_THRESHOLD"))
 class Imp:
   
     def __init__(self, filename, doc, image_name, scale, neighbors, eyesize, mscale, mneighbors,msizex, msizey):
@@ -422,19 +423,34 @@ class Imp:
         result["eyes"] = 0
         result["mouth"] = 0
         result["version_api"] = "bioecpimg:2.0"
+        motivos = []
         # result["start_time"] = datetime.now()
         
         start = time.time()
 
-        # Si la imagen es muy grande la reduce a un ancho de 2048 (para poder procesarla)
-        if (result["original_size"]["width"] > 2048):
+        # Si la imagen tiene menos de 640x800 (o uno de los dos) se rechaza por resolucion
+        if ((result["original_size"]["width"] < 640) or (result["original_size"]["height"] < 640)):
+            motivos.append("La imagen no es válida, por favor cargue una imagen más grande o intente tomarse una 'selfie'")
+            result["status"] = "rechazado"
+            result["motivos"]= motivos
+            result["process_time"] = time.time() - start
+            return result 
+        # Si la imagen es muy grande la reduce a un ancho de 2048 (para poder procesarla)        
+        elif (result["original_size"]["width"] > 2048):
             img = self.image_resize(img, width=2048)
-            cv2.imwrite(self.filename, img)
+            cv2.imwrite(self.filename, img) 
 
-        #Convierte la imagen a tonos de grises
+
+
+        # Convierte la imagen a tonos de grises para procesamiento posteriores
+        # Esto se hace porque la tecnica haarcascade funciona sobe imagenes en blanco y negro
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        (mean, blurry) = self.detect_blur_fft(gray, size=60,thresh = 6)
+
+        # Calcula la media y la transformada de fourier para detectar enfoque y contraste
+        (mean, blurry) = self.detect_blur_fft(gray, size=60,thresh = blurr_thershold)
+        # devuelve la media de los valores de frecuencia
         result["mean_fft"] = mean
+
         if (DEBUG_IMPR):
             print(blurry)
         result["blurry"] = 0
@@ -444,33 +460,23 @@ class Imp:
         # result["blurry_fft"] = blurry
 
         result["image"] = ""
-        motivos = []
+        # motivos = []
         
         # detecta numero de caras en la imagen
         (faces, eyes, mouth) = self.detect_faces(img, self.doc)
+        # cuantos rostros detecto
         result["faces"] = len(faces)
-        result["eyes"] = len(eyes)
-        result["mouth"] = len(mouth)
-        
-        # # detecta numero de ojos en la imagen
-        # eyes = self.detect_eyes(img, self.doc)
-        # result["eyes"] = len(eyes)
 
-        # detecta la boca en la imagen
-        # mouth = self.detect_mouth(img, self.doc)
-        # result["mouth"] = len(mouth)
+        # cuantos ojos detecto
+        result["eyes"] = len(eyes)
+
+        # cuantas bocas detecto
+        result["mouth"] = len(mouth)
 
         # Si se detecta mas de una cara se rechaza
-        if len(eyes) != 2:
+        if len(eyes) < 2:
             motivos.append("La imagen no es válida, por favor cargue una imagen en la que los ojos sean visibles.")
             result["status"] = "rechazado"
-        # result["mask"] = detect_mask(img, doc)
-
-        # print("Mascara : " , result["mask"])
-        # # Si se detecta una mascara se rechaza la imagen
-        # if (result["mask"] == "Mask"):
-        #     motivos.append("No se permite usar mascara para la foto")
-        #     result["status"] = "rechazado"
 
         # Si se detecta mas de una cara se rechaza
         if len(faces) > 1:
@@ -482,22 +488,21 @@ class Imp:
             motivos.append("La imagen no es válida, por favor cargue una imagen tomada de frente.")
             result["status"] = "rechazado"
         
+        # Si NO se detecta cara valida se rechaza
+        if len(mouth) == 0:
+            motivos.append("La imagen no es válida, no se detecta la boca en la imagen.")
+            result["status"] = "rechazado"
+        
         # Si NO se detecta una boca valida se rechaza
         # if len(mouth) == 0:
         #     motivos.append("La imagen no es válida, por favor cargue una imagen en la que la boca sea visible.")
         #     result["status"] = "rechazado"
 
-        # Si la varianza es menor a 100 define imagen borrosa -> rechaza
+        # Si la frecuencia central de la transformada de fourier es menor a un threshold la rechaza por enfoque
         if result["blurry"] == 1:
             motivos.append("La imagen no es válida, por favor cargue una imagen más clara.")
             result["status"] = "rechazado"
         
-        
-
-        # Si la imagen tiene menos de 640x480 (o uno de los dos) se rechaza por resolucion
-        elif ((result["original_size"]["width"] < 640) or (result["original_size"]["height"] < 800)):
-            motivos.append("La imagen no es válida,por favor cargue una imagen más grande o intente tomarse una 'selfie'")
-            result["status"] = "rechazado"
             
         # Si cumple las condiciones recorta la imagen alrededor de la cara
         if img is not None and result["status"] == "aprobado":        
@@ -522,6 +527,7 @@ class Imp:
             with open('crops/response_' + self.doc + '.json', 'w') as json_file:
                 json.dump(result, json_file)
 
+        # Calculo del tiempo de trabajo
         result["process_time"] = time.time() - start
         
         # Se retorna el JSON del resultado
