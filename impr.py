@@ -9,6 +9,7 @@ import os
 from os import path
 from os.path import dirname
 import json
+import pathlib
 
 DEBUG_IMG = os.environ.get("DEBUG_IMG")
 DEBUG_IMGS = os.environ.get("DEBUG_IMGS")
@@ -18,9 +19,19 @@ Eye_Scale = float(os.environ.get("EYE_SCALE"))
 Eye_Neighbors = int(os.environ.get("EYE_NEIGHBORS"))
 Eye_Size = int(os.environ.get("EYE_SIZE"))
 blurr_thershold = int(os.environ.get("BLURR_THRESHOLD"))
+
+# Error messages
+small_image = os.environ.get("SMALL_IMAGE")
+frontal_face = os.environ.get("FRONTAL_FACE")
+multiple_face = os.environ.get("MULTIPLE_FACE")
+blurry_face = os.environ.get("BLURRY_FACE")
+both_eye = os.environ.get("BOTH_EYE")
+mouth_visible = os.environ.get("MOUTH_VISIBLE")
+crop_image = os.environ.get("CROP_IMAGE")
+
 class Imp:
   
-    def __init__(self, filename, doc, image_name, scale, neighbors, eyesize, mscale, mneighbors,msizex, msizey):
+    def __init__(self, filename, doc, image_name, scale, neighbors, eyesize, mscale, mneighbors,msizex, msizey, blurry_threshold):
         self.filename = 'uploads/' + filename
         self.doc = doc
         self.document = doc
@@ -30,6 +41,7 @@ class Imp:
         self.eyesize = int(eyesize)
         self.mouthScale = float(mscale)
         self.mouthNeighbors = int(mneighbors)
+        self.blurry_threshold = int(blurry_threshold)
         # self.result = []
 
     def convert_and_save(self, b64_string):
@@ -227,7 +239,9 @@ class Imp:
         # Load the cascade
         face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades +'haarcascade_frontalface_default.xml')
         eye_cascade = cv2.CascadeClassifier(cv2.data.haarcascades +'haarcascade_eye.xml')
-        mouth_cascade = cv2.CascadeClassifier('haarcascade_mouth.xml')
+        haarPath = str(pathlib.Path(__file__).parent.absolute()) + '/haarcascade_mouth.xml'
+        # print(haarPath)
+        mouth_cascade = cv2.CascadeClassifier(haarPath)
 
         # if mouth_cascade.empty():
         #     raise IOError('Unable to load the mouth cascade classifier xml file')
@@ -430,7 +444,7 @@ class Imp:
 
         # Si la imagen tiene menos de 640x800 (o uno de los dos) se rechaza por resolucion
         if ((result["original_size"]["width"] < 640) or (result["original_size"]["height"] < 640)):
-            motivos.append("La imagen no es válida, por favor cargue una imagen más grande o intente tomarse una 'selfie'")
+            motivos.append(small_image)
             result["status"] = "rechazado"
             result["motivos"]= motivos
             result["process_time"] = time.time() - start
@@ -447,7 +461,7 @@ class Imp:
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
         # Calcula la media y la transformada de fourier para detectar enfoque y contraste
-        (mean, blurry) = self.detect_blur_fft(gray, size=60,thresh = blurr_thershold)
+        (mean, blurry) = self.detect_blur_fft(gray, size=60,thresh = self.blurry_threshold)
         # devuelve la media de los valores de frecuencia
         result["mean_fft"] = mean
 
@@ -475,22 +489,22 @@ class Imp:
 
         # Si se detecta mas de una cara se rechaza
         if len(eyes) < 2:
-            motivos.append("La imagen no es válida, por favor cargue una imagen en la que los ojos sean visibles.")
+            motivos.append(both_eye)
             result["status"] = "rechazado"
 
         # Si se detecta mas de una cara se rechaza
         if len(faces) > 1:
-            motivos.append("La imagen no es válida,  se identificaron varios rostros en la imagen, por favor cargue una imagen con la cara centrada y con suficente espacio libre a los costados.")
+            motivos.append(multiple_face)
             result["status"] = "rechazado"
 
         # Si NO se detecta cara valida se rechaza
         if len(faces) == 0:
-            motivos.append("La imagen no es válida, por favor cargue una imagen tomada de frente.")
+            motivos.append(frontal_face)
             result["status"] = "rechazado"
         
         # Si NO se detecta cara valida se rechaza
         if len(mouth) == 0:
-            motivos.append("La imagen no es válida, no se detecta la boca en la imagen.")
+            motivos.append(mouth_visible)
             result["status"] = "rechazado"
         
         # Si NO se detecta una boca valida se rechaza
@@ -500,7 +514,7 @@ class Imp:
 
         # Si la frecuencia central de la transformada de fourier es menor a un threshold la rechaza por enfoque
         if result["blurry"] == 1:
-            motivos.append("La imagen no es válida, por favor cargue una imagen más clara.")
+            motivos.append(blurry_face)
             result["status"] = "rechazado"
         
             
@@ -516,7 +530,7 @@ class Imp:
                 result["outfile"] = "crop_" + self.doc
             else:
                 result["status"] = "rechazado"
-                motivos.append("La imagen no es válida, por favor cargue una imagen con la cara centrada y con suficente espacio libre a los costados.")
+                motivos.append(crop_image)
                 result["image"] = ""
 
         # Si la imagen se ha rechazado , se actualiza los motivos

@@ -23,7 +23,14 @@
                 "MOUTH_SCALE" : "1.2",
                 "MOUTH_SIZE_X" : "300",
                 "MOUTH_SIZE_Y" : "150",
-                "BLURR_THRESHOLD" : "6"
+                "BLURR_THRESHOLD" : "6",
+                "SMALL_IMAGE":"La imagen no es válida,  se identificaron varios rostros en la imagen, por favor cargue una imagen solo con su cara centrada y con suficente espacio libre a los costados.",
+                "FRONTAL_FACE":"La imagen no es válida, por favor cargue una imagen  tomada de frente.",
+                "MULTIPLE_FACE":"La imagen no es válida,  se identificaron varios rostros en la imagen, por favor cargue una imagen solo con su cara centrada y con suficente espacio libre a los costados.",
+                "BLURRY_FACE":"La imagen no es válida, por favor cargue una imagen con mejor contraste y enfoque.",
+                "BOTH_EYE":"La imagen no es válida, por favor cargue una imagen en la que los ojos estén más abiertos y sean visibles.",
+                "MOUTH_VISIBLE":"La imagen no es válida, por favor cargue una imagen en la que la boca sea visible.",
+                "CROP_IMAGE":"La imagen no es válida, por favor cargue una imagen con la cara centrada, ocupe la mayor parte de la foto  y tenga espacio libre a los costados."
             },
             "args": [
                 "run",

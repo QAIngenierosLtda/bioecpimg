@@ -25,8 +25,6 @@ from impr import Imp
 # from tensorflow.keras.applications.mobilenet_v2 import preprocess_input
 # from tensorflow.keras.preprocessing.image import img_to_array
 # from tensorflow.keras.models import load_model
-
-
 from flask import Flask,  request, make_response, render_template, send_from_directory
 from flask_restful import Resource, Api, reqparse
 from flask_cors import CORS
@@ -220,6 +218,13 @@ class ProcessImageEndpoint(Resource):
         print(file.filename)
         doc = request.values['doc'] + '-' + gfh
         
+        if file.filename[-4:] not in {'.jpg', 'jpeg', '.JPG', 'JPEG'}:
+            result["status"] = "rechazado"
+            motivos = ["Tipo de archivo no valido"]
+            result["motivos"] =  motivos
+            return result
+
+
         # Si el post contiene parametro de scale se toma, sino se lee del env
         if 'scale' in request.values:
             scale = request.values["scale"]
@@ -257,6 +262,11 @@ class ProcessImageEndpoint(Resource):
             msizey = request.values["m_size_y"]
         else:
             msizey = os.environ.get('MOUTH_SIZE_Y')
+
+        if 'blurry_threshold' in request.values:
+            blurry_threshold = request.values["blurry_threshold"]
+        else:
+            blurry_threshold = os.environ.get('BLURR_THRESHOLD')
         
         # image_name = request.values["doc"] + '_' + gfh
         # print (request)
@@ -278,7 +288,7 @@ class ProcessImageEndpoint(Resource):
                 # filename = filename
 
                 # ip = Imp(filename, doc, archivo)
-                ip = Imp(filename, doc, archivo, scale, neighbors, eyesize, mscale, mnb ,msizex, msizey)
+                ip = Imp(filename, doc, archivo, scale, neighbors, eyesize, mscale, mnb ,msizex, msizey, blurry_threshold)
                 # ip = Imp(filename, doc, archivo, scale, neighbors, eyesize)
                 res = ip.test_image()
 
